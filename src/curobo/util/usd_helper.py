@@ -93,7 +93,7 @@ def set_prim_transform(
     # get scale:
 
 
-def get_prim_world_pose(cache: UsdGeom.XformCache, prim: Usd.Prim, inverse: bool = False):
+def get_prim_world_pose(cache: UsdGeom.XformCache, prim: Usd.Prim, inverse: bool = False, return_pose=False):
     world_transform: Gf.Matrix4d = cache.GetLocalToWorldTransform(prim)
     # get scale:
     scale: Gf.Vec3d = Gf.Vec3d(*(v.GetLength() for v in world_transform.ExtractRotationMatrix()))
@@ -108,13 +108,16 @@ def get_prim_world_pose(cache: UsdGeom.XformCache, prim: Usd.Prim, inverse: bool
     rotation: Gf.Rotation = t_mat.ExtractRotation()
     q = rotation.GetQuaternion()
     orientation = [q.GetReal()] + list(q.GetImaginary())
-    t_mat = (
-        Pose.from_list(list(translation) + orientation, TensorDeviceType())
-        .get_matrix()
-        .view(4, 4)
-        .cpu()
-        .numpy()
-    )
+    if return_pose:
+        t_mat = Pose.from_list(list(translation) + orientation)
+    else:
+        t_mat = (
+            Pose.from_list(list(translation) + orientation, TensorDeviceType())
+            .get_matrix()
+            .view(4, 4)
+            .cpu()
+            .numpy()
+        )
 
     return t_mat, scale
 
@@ -457,10 +460,10 @@ class UsdHelper:
     def load_stage(self, stage: Usd.Stage):
         self.stage = stage
 
-    def get_pose(self, prim_path: str, timecode: float = 0.0, inverse: bool = False) -> np.matrix:
+    def get_pose(self, prim_path: str, timecode: float = 0.0, inverse: bool = False, return_pose: bool = False) -> np.matrix:
         self._xform_cache.SetTime(timecode)
         reference_prim = self.stage.GetPrimAtPath(prim_path)
-        r_T_w, _ = get_prim_world_pose(self._xform_cache, reference_prim, inverse=inverse)
+        r_T_w, _ = get_prim_world_pose(self._xform_cache, reference_prim, inverse=inverse, return_pose=return_pose)
         return r_T_w
 
     def get_obstacles_from_stage(

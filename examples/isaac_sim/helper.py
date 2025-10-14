@@ -37,6 +37,7 @@ from typing import Optional
 
 # Third Party
 from omni.isaac.core.utils.extensions import enable_extension
+from omni.isaac.core.utils.stage import add_reference_to_stage
 
 # CuRobo
 from curobo.util_file import get_assets_path, get_filename, get_path_of_dir, join_path
@@ -66,46 +67,57 @@ def add_robot_to_scene(
     robot_name: str = "robot",
     position: np.array = np.array([0, 0, 0]),
 ):
-    urdf_interface = _urdf.acquire_urdf_interface()
-
-    import_config = _urdf.ImportConfig()
-    import_config.merge_fixed_joints = False
-    import_config.convex_decomp = False
-    import_config.import_inertia_tensor = True
-    import_config.fix_base = True
-    import_config.make_default_prim = False
-    import_config.self_collision = False
-    import_config.create_physics_scene = True
-    import_config.import_inertia_tensor = False
-    import_config.default_drive_strength = 20000
-    import_config.default_position_drive_damping = 500
-    import_config.default_drive_type = _urdf.UrdfJointTargetType.JOINT_DRIVE_POSITION
-    import_config.distance_scale = 1
-    import_config.density = 0.0
     asset_path = get_assets_path()
-    if (
-        "external_asset_path" in robot_config["kinematics"]
-        and robot_config["kinematics"]["external_asset_path"] is not None
-    ):
-        asset_path = robot_config["kinematics"]["external_asset_path"]
-    full_path = join_path(asset_path, robot_config["kinematics"]["urdf_path"])
-    robot_path = get_path_of_dir(full_path)
-    filename = get_filename(full_path)
-    imported_robot = urdf_interface.parse_urdf(robot_path, filename, import_config)
-    dest_path = subroot
-    robot_path = urdf_interface.import_robot(
-        robot_path,
-        filename,
-        imported_robot,
-        import_config,
-        dest_path,
-    )
 
-    # prim_path = omni.usd.get_stage_next_free_path(
-    # my_world.scene.stage, str(my_world.scene.stage.GetDefaultPrim().GetPath()) + robot_path, False)
-    # print(prim_path)
-    # robot_prim = my_world.scene.stage.OverridePrim(prim_path)
-    # robot_prim.GetReferences().AddReference(dest_path)
+    if load_from_usd is True:
+        # Load robot from USD
+        robot_usd_path = asset_path + "/" + robot_config["kinematics"]["usd_path"]
+        # make prim path
+        usd_robot_root = robot_config["kinematics"]["usd_robot_root"]
+        robot_path = str(my_world.scene.stage.GetDefaultPrim().GetPath()) + subroot + usd_robot_root # prim path
+        add_reference_to_stage(robot_usd_path, robot_path)
+    else:
+        urdf_interface = _urdf.acquire_urdf_interface()
+
+        import_config = _urdf.ImportConfig()
+        import_config.merge_fixed_joints = False
+        import_config.convex_decomp = False
+        import_config.import_inertia_tensor = True
+        import_config.fix_base = True
+        import_config.make_default_prim = False
+        import_config.self_collision = False
+        import_config.create_physics_scene = True
+        import_config.import_inertia_tensor = False
+        import_config.default_drive_strength = 20000
+        import_config.default_position_drive_damping = 500
+        import_config.default_drive_type = _urdf.UrdfJointTargetType.JOINT_DRIVE_POSITION
+        import_config.distance_scale = 1
+        import_config.density = 0.0
+        if (
+            "external_asset_path" in robot_config["kinematics"]
+            and robot_config["kinematics"]["external_asset_path"] is not None
+        ):
+            asset_path = robot_config["kinematics"]["external_asset_path"]
+        full_path = join_path(asset_path, robot_config["kinematics"]["urdf_path"])
+        robot_path = get_path_of_dir(full_path)
+        filename = get_filename(full_path)
+        imported_robot = urdf_interface.parse_urdf(robot_path, filename, import_config)
+        dest_path = subroot
+        robot_path = urdf_interface.import_robot(
+            robot_path,
+            filename,
+            imported_robot,
+            import_config,
+            dest_path,
+        )
+
+        # prim_path = omni.usd.get_stage_next_free_path(
+        # my_world.scene.stage, str(my_world.scene.stage.GetDefaultPrim().GetPath()) + robot_path, False)
+        # print(prim_path)
+        # robot_prim = my_world.scene.stage.OverridePrim(prim_path)
+        # robot_prim.GetReferences().AddReference(dest_path)
+    
+    # Wrap in Robot class
     robot_p = Robot(
         prim_path=robot_path,
         name=robot_name,

@@ -37,7 +37,9 @@ from curobo.types.base import TensorDeviceType
 from curobo.types.math import Pose
 from curobo.types.state import JointState
 from curobo.util.logger import log_error, log_info, log_warn
-from curobo.util_file import get_assets_path, get_robot_configs_path, join_path, load_yaml
+# from curobo.util_file import get_assets_path, get_robot_configs_path, join_path, load_yaml
+from curobo.util_file import load_yaml
+from momart.utils.paths import get_package_assets_path, get_package_robot_configs_path, join_path
 
 try:
     # CuRobo
@@ -148,11 +150,16 @@ class CudaRobotGeneratorConfig:
     #: Enable loading meshes from kinematics parser.
     load_meshes: bool = False
 
+    # extra configs that are ignored:
+    extra_cfgs: Optional[Dict[str, Any]] = None  
+
     def __post_init__(self):
         # add root path:
         # Check if an external asset path is provided:
-        asset_path = get_assets_path()
-        robot_path = get_robot_configs_path()
+        # asset_path = get_assets_path()
+        # robot_path = get_robot_configs_path()
+        asset_path = get_package_assets_path()
+        robot_path = get_package_robot_configs_path()
         if self.external_asset_path is not None:
             asset_path = self.external_asset_path
         if self.external_robot_configs_path is not None:

@@ -603,6 +603,17 @@ class WorldPrimitiveCollision(WorldCollision):
             self.update_obb_pose(name=name, w_obj_pose=w_obj_pose, env_idx=env_idx)
         else:
             log_error("obstacle not found in OBB world model: " + name)
+    
+    def update_obstacle_pose_inverse(
+        self,
+        name: str,
+        obj_w_pose: Pose,
+        env_idx: int = 0,
+    ):
+        if self._env_obbs_names is not None and name in self._env_obbs_names[env_idx]:
+            self.update_obb_pose(name=name, obj_w_pose=obj_w_pose, env_idx=env_idx)
+        else:
+            log_error("obstacle not found in OBB world model: " + name)
 
     def update_obb_pose(
         self,
